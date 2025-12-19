@@ -20,13 +20,10 @@ RUN go mod download
 # Copy everything (including models)
 COPY . .
 
-# Verify what we copied
-RUN echo "=== Builder stage contents ===" && \
-    ls -la && \
-    echo "=== Models directory ===" && \
-    ls -la models/ && \
-    echo "=== Model file check ===" && \
-    file models/model_embedded.onnx
+# Verify what we copied - SIMPLIFIED
+RUN echo "=== Models directory ===" && \
+    ls -lah models/ && \
+    du -h models/model_embedded.onnx 2>/dev/null || echo "⚠️  model_embedded.onnx NOT FOUND"
 
 # Build with CGO
 ENV CGO_ENABLED=1
@@ -60,12 +57,9 @@ COPY --from=builder /app/fer-api ./fer-api
 COPY --from=builder /app/models ./models
 
 # Verify in runtime stage
-RUN echo "=== Runtime stage contents ===" && \
-    ls -la && \
-    echo "=== Models directory ===" && \
-    ls -la models/ && \
-    echo "=== Checking specific file ===" && \
-    test -f models/model_embedded.onnx && echo "✓ model_embedded.onnx found" || echo "✗ model_embedded.onnx NOT FOUND"
+RUN echo "=== Runtime Models Check ===" && \
+    ls -lah models/ && \
+    test -f models/model_embedded.onnx && echo "✅ Model file exists!" || echo "❌ Model file MISSING!"
 
 # Set library path
 ENV LD_LIBRARY_PATH=/app/lib:/usr/local/lib:/usr/lib:$LD_LIBRARY_PATH
