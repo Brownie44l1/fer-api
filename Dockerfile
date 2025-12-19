@@ -13,12 +13,20 @@ RUN cp onnxruntime/lib/* /usr/local/lib/ && \
     cp -r onnxruntime/include/* /usr/local/include/ && \
     ldconfig
 
-# Copy dependencies
+# Copy go modules first
 COPY go.mod go.sum ./
 RUN go mod download
 
-# Copy source
+# Copy everything (including models)
 COPY . .
+
+# Verify what we copied
+RUN echo "=== Builder stage contents ===" && \
+    ls -la && \
+    echo "=== Models directory ===" && \
+    ls -la models/ && \
+    echo "=== Model file check ===" && \
+    file models/model_embedded.onnx
 
 # Build with CGO
 ENV CGO_ENABLED=1
@@ -37,20 +45,29 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# Copy ONNX Runtime libs to app directory
+# Copy ONNX Runtime libs
 COPY --from=builder /app/onnxruntime/lib/ /app/lib/
 
-# Create symlinks in /app/lib
+# Create symlinks
 RUN cd /app/lib && \
     ln -sf libonnxruntime.so.* libonnxruntime.so && \
-    ln -sf libonnxruntime.so onnxruntime.so && \
-    ls -la
+    ln -sf libonnxruntime.so onnxruntime.so
 
-# Copy binary and models
-COPY --from=builder /app/fer-api .
+# Copy binary
+COPY --from=builder /app/fer-api ./fer-api
+
+# Copy models - be very explicit
 COPY --from=builder /app/models ./models
 
-# Set library path to look in /app/lib first
+# Verify in runtime stage
+RUN echo "=== Runtime stage contents ===" && \
+    ls -la && \
+    echo "=== Models directory ===" && \
+    ls -la models/ && \
+    echo "=== Checking specific file ===" && \
+    test -f models/model_embedded.onnx && echo "✓ model_embedded.onnx found" || echo "✗ model_embedded.onnx NOT FOUND"
+
+# Set library path
 ENV LD_LIBRARY_PATH=/app/lib:/usr/local/lib:/usr/lib:$LD_LIBRARY_PATH
 
 EXPOSE 8080
