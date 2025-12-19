@@ -68,7 +68,7 @@ func main() {
         log.Println("  POST /predict/image   - Predict from image upload")
 	log.Printf("\n💡 Upload test: curl -X POST -F \"image=@face.jpg\" http://localhost:%s/predict/image\n\n", port)
 
-	if err := http.ListenAndServe(port, nil); err != nil {
+	if err := http.ListenAndServe(":"+port, nil); err != nil {
 		log.Fatalf("Server failed: %v", err)
 	}
 }

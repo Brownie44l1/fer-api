@@ -1,16 +1,17 @@
 FROM golang:1.23-bookworm AS builder
 
-# Install ONNX Runtime
-RUN apt-get update && apt-get install -y wget && \
-    wget https://github.com/microsoft/onnxruntime/releases/download/v1.16.3/onnxruntime-linux-x64-1.16.3.tgz && \
-    tar -xzf onnxruntime-linux-x64-1.16.3.tgz && \
-    mkdir -p /usr/local/lib && \
-    cp onnxruntime-linux-x64-1.16.3/lib/* /usr/local/lib/ && \
-    cp -r onnxruntime-linux-x64-1.16.3/include/* /usr/local/include/ && \
-    ldconfig && \
-    rm -rf onnxruntime-linux-x64-1.16.3*
-
 WORKDIR /app
+
+# Download ONNX Runtime
+RUN wget https://github.com/microsoft/onnxruntime/releases/download/v1.16.3/onnxruntime-linux-x64-1.16.3.tgz && \
+    tar -xzf onnxruntime-linux-x64-1.16.3.tgz && \
+    mv onnxruntime-linux-x64-1.16.3 onnxruntime && \
+    rm onnxruntime-linux-x64-1.16.3.tgz
+
+# Install system ONNX Runtime for building
+RUN cp onnxruntime/lib/* /usr/local/lib/ && \
+    cp -r onnxruntime/include/* /usr/local/include/ && \
+    ldconfig
 
 # Copy dependencies
 COPY go.mod go.sum ./
@@ -36,22 +37,21 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# Copy ONNX Runtime libraries
-COPY --from=builder /usr/local/lib/libonnxruntime.so* /usr/local/lib/
+# Copy ONNX Runtime libs to app directory
+COPY --from=builder /app/onnxruntime/lib/ /app/lib/
 
-# Create the symlink that yalue/onnxruntime_go expects
-RUN cd /usr/local/lib && \
+# Create symlinks in /app/lib
+RUN cd /app/lib && \
     ln -sf libonnxruntime.so.* libonnxruntime.so && \
     ln -sf libonnxruntime.so onnxruntime.so && \
-    ldconfig && \
-    ls -la /usr/local/lib/
+    ls -la
 
 # Copy binary and models
 COPY --from=builder /app/fer-api .
 COPY --from=builder /app/models ./models
 
-# Set library path
-ENV LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+# Set library path to look in /app/lib first
+ENV LD_LIBRARY_PATH=/app/lib:/usr/local/lib:/usr/lib:$LD_LIBRARY_PATH
 
 EXPOSE 8080
 
