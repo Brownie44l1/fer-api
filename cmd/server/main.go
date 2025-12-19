@@ -35,16 +35,19 @@ func main() {
 
 	handler := handlers.NewHandler(modelServer)
 
+        http.HandleFunc("/health", handler.Health)
 	http.HandleFunc("/predict", handler.Predict)
-	http.HandleFunc("/health", handler.Health)
+        http.HandleFunc("/predict/image", handler.PredictFromImage)
 
 	port := ":8080"
 	log.Printf("Server starting on port %s", port)
 	log.Printf("Model loaded: %s", modelPath)
 	log.Printf("Classes: %v", modelServer.Metadata.Classes)
 	log.Println("Endpoints:")
-	log.Println("  POST /predict - Raw array prediction")
 	log.Println("  GET /health - Health check")
+        log.Println("  POST /predict - Raw array prediction")
+        log.Println("  POST /predict/image   - Predict from image upload")
+	log.Printf("\n💡 Upload test: curl -X POST -F \"image=@face.jpg\" http://localhost:%s/predict/image\n\n", port)
 
 	if err := http.ListenAndServe(port, nil); err != nil {
 		log.Fatalf("Server failed: %v", err)
