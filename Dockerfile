@@ -4,6 +4,7 @@ FROM golang:1.23-bookworm AS builder
 RUN apt-get update && apt-get install -y wget && \
     wget https://github.com/microsoft/onnxruntime/releases/download/v1.16.3/onnxruntime-linux-x64-1.16.3.tgz && \
     tar -xzf onnxruntime-linux-x64-1.16.3.tgz && \
+    mkdir -p /usr/local/lib && \
     cp onnxruntime-linux-x64-1.16.3/lib/* /usr/local/lib/ && \
     cp -r onnxruntime-linux-x64-1.16.3/include/* /usr/local/include/ && \
     ldconfig && \
@@ -18,30 +19,36 @@ RUN go mod download
 # Copy source
 COPY . .
 
-# Build
-RUN CGO_ENABLED=1 go build -o fer-api cmd/server/main.go
+# Build with CGO and specify library path
+ENV CGO_ENABLED=1
+ENV CGO_LDFLAGS="-L/usr/local/lib"
+RUN go build -o fer-api cmd/server/main.go
 
 # Runtime stage
 FROM debian:bookworm-slim
 
-# Install runtime dependencies including libgomp1
+# Install runtime dependencies
 RUN apt-get update && apt-get install -y \
     ca-certificates \
     libgomp1 \
+    libstdc++6 \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy ONNX Runtime libs from builder
-COPY --from=builder /usr/local/lib/libonnxruntime* /usr/local/lib/
-RUN ldconfig
-
 WORKDIR /app
+
+# Copy the entire lib directory to ensure all dependencies
+COPY --from=builder /usr/local/lib/libonnxruntime* /usr/lib/
+COPY --from=builder /usr/local/lib/libonnxruntime* /usr/local/lib/
+
+# Update library cache
+RUN ldconfig
 
 # Copy binary and models
 COPY --from=builder /app/fer-api .
 COPY --from=builder /app/models ./models
 
-# Set library path explicitly
-ENV LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+# Set multiple library paths
+ENV LD_LIBRARY_PATH=/usr/lib:/usr/local/lib:/lib/x86_64-linux-gnu:/usr/lib/x86_64-linux-gnu
 
 EXPOSE 8080
 
