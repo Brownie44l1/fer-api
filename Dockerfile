@@ -1,4 +1,4 @@
-FROM golang:1.21-bullseye AS builder
+FROM golang:1.24-bookworm AS builder
 
 # Install ONNX Runtime
 RUN apt-get update && apt-get install -y wget && \
@@ -22,7 +22,7 @@ COPY . .
 RUN CGO_ENABLED=1 go build -o fer-api ./cmd/main.go
 
 # Runtime stage
-FROM ubuntu:22.04
+FROM debian:bookworm-slim
 
 # Install runtime dependencies
 RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
