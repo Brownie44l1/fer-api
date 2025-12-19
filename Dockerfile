@@ -19,7 +19,7 @@ RUN go mod download
 COPY . .
 
 # Build
-RUN CGO_ENABLED=1 go build -o fer-api ./cmd/main.go
+RUN CGO_ENABLED=1 go build -o fer-api cmd/server/main.go
 
 # Runtime stage
 FROM debian:bookworm-slim
