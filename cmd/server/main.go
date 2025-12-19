@@ -10,6 +10,21 @@ import (
 	"github.com/Brownie44l1/fer-api/internal/model"
 )
 
+func enableCORS(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		
+		next(w, r)
+	}
+}
+
 func main() {
 	// Get the project root directory
 	execPath, err := os.Getwd()
@@ -35,11 +50,15 @@ func main() {
 
 	handler := handlers.NewHandler(modelServer)
 
-        http.HandleFunc("/health", handler.Health)
-	http.HandleFunc("/predict", handler.Predict)
-        http.HandleFunc("/predict/image", handler.PredictFromImage)
+    http.HandleFunc("/health", enableCORS(handler.Health))
+	http.HandleFunc("/predict", enableCORS(handler.Predict))
+    http.HandleFunc("/predict/image", enableCORS(handler.PredictFromImage))
 
-	port := ":8080"
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
 	log.Printf("Server starting on port %s", port)
 	log.Printf("Model loaded: %s", modelPath)
 	log.Printf("Classes: %v", modelServer.Metadata.Classes)

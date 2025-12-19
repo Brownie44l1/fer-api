@@ -1,2 +1,3 @@
 onnxruntime-linux-x64-*
 models/*.onnx
+*.log
