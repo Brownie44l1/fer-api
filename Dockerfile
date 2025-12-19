@@ -24,8 +24,11 @@ RUN CGO_ENABLED=1 go build -o fer-api cmd/server/main.go
 # Runtime stage
 FROM debian:bookworm-slim
 
-# Install runtime dependencies
-RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
+# Install runtime dependencies including libgomp1
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy ONNX Runtime libs from builder
 COPY --from=builder /usr/local/lib/libonnxruntime* /usr/local/lib/
@@ -36,6 +39,9 @@ WORKDIR /app
 # Copy binary and models
 COPY --from=builder /app/fer-api .
 COPY --from=builder /app/models ./models
+
+# Set library path explicitly
+ENV LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
 
 EXPOSE 8080
 
