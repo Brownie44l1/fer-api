@@ -19,7 +19,7 @@ RUN go mod download
 # Copy source
 COPY . .
 
-# Build with CGO and specify library path
+# Build with CGO
 ENV CGO_ENABLED=1
 ENV CGO_LDFLAGS="-L/usr/local/lib"
 RUN go build -o fer-api cmd/server/main.go
@@ -36,19 +36,22 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# Copy the entire lib directory to ensure all dependencies
-COPY --from=builder /usr/local/lib/libonnxruntime* /usr/lib/
-COPY --from=builder /usr/local/lib/libonnxruntime* /usr/local/lib/
+# Copy ONNX Runtime libraries
+COPY --from=builder /usr/local/lib/libonnxruntime.so* /usr/local/lib/
 
-# Update library cache
-RUN ldconfig
+# Create the symlink that yalue/onnxruntime_go expects
+RUN cd /usr/local/lib && \
+    ln -sf libonnxruntime.so.* libonnxruntime.so && \
+    ln -sf libonnxruntime.so onnxruntime.so && \
+    ldconfig && \
+    ls -la /usr/local/lib/
 
 # Copy binary and models
 COPY --from=builder /app/fer-api .
 COPY --from=builder /app/models ./models
 
-# Set multiple library paths
-ENV LD_LIBRARY_PATH=/usr/lib:/usr/local/lib:/lib/x86_64-linux-gnu:/usr/lib/x86_64-linux-gnu
+# Set library path
+ENV LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
 
 EXPOSE 8080
 
