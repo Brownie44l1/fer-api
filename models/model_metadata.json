@@ -1,6 +1,7 @@
 {
-  "model_type": "ResNet50_CBAM",
-  "expressions": [
+  "input_shape": [1, 3, 224, 224],
+  "output_shape": [1, 7],
+  "classes": [
     "neutral",
     "happy",
     "sad",
@@ -8,11 +9,5 @@
     "surprised",
     "fearful",
     "disgusted"
-  ],
-  "num_classes": 7,
-  "image_size": 224,
-  "test_accuracy": 0.4789915966386555,
-  "training_epochs": 50,
-  "batch_size": 32,
-  "learning_rate": 0.0001
+  ]
 }
