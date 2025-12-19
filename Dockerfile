@@ -2,11 +2,11 @@ FROM golang:1.23-bookworm AS builder
 
 WORKDIR /app
 
-# Download ONNX Runtime
-RUN wget https://github.com/microsoft/onnxruntime/releases/download/v1.16.3/onnxruntime-linux-x64-1.16.3.tgz && \
-    tar -xzf onnxruntime-linux-x64-1.16.3.tgz && \
-    mv onnxruntime-linux-x64-1.16.3 onnxruntime && \
-    rm onnxruntime-linux-x64-1.16.3.tgz
+# Download ONNX Runtime 1.18.1 (supports API v18)
+RUN wget https://github.com/microsoft/onnxruntime/releases/download/v1.18.1/onnxruntime-linux-x64-1.18.1.tgz && \
+    tar -xzf onnxruntime-linux-x64-1.18.1.tgz && \
+    mv onnxruntime-linux-x64-1.18.1 onnxruntime && \
+    rm onnxruntime-linux-x64-1.18.1.tgz
 
 # Install system ONNX Runtime for building
 RUN cp onnxruntime/lib/* /usr/local/lib/ && \
